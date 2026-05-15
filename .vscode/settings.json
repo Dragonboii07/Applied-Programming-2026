@@ -1,5 +1,6 @@
 {
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
     "marimo.marimoPath": "uv run marimo",
-    "marimo.sandbox": true
+    "marimo.sandbox": true,
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }

@@ -25,7 +25,7 @@ def load_emg_data(filename: str):
     """
 
     # TODO: load the pickle file with pandas
-    data = None
+    data = pd.read_pickle("recording.pkl")
 
     print("Data structure:")
     print("-" * 50)
@@ -38,10 +38,10 @@ def load_emg_data(filename: str):
     print("-" * 50)
 
     # TODO: extract the EMG signal
-    emg_signal = None
+    emg_signal = data["biosignal"]
 
     # TODO: extract the sampling rate
-    sampling_rate = None
+    sampling_rate = data["ground_truth_sampling_frequency"]
 
     print("\nEMG Signal information:")
     print("-" * 50)
@@ -63,10 +63,10 @@ def restructure_emg_data(emg_signal: np.ndarray):
     """
 
     # TODO: determine the number of channels
-    num_channels = None
+    num_channels = emg_signal.shape[0]
 
     # TODO: transpose and reshape so each row is one continuous channel
-    channel_data = None
+    channel_data = emg_signal.reshape(num_channels, -1)
 
     print("\nRestructured EMG Data:")
     print("-" * 50)
@@ -89,14 +89,18 @@ def bandpass_filter_emg(
     """
 
     # TODO: compute the Nyquist frequency
-    nyquist = None
+    nyquist = sampling_rate / 2
 
     # TODO: validate low_cut and high_cut
     # Raise ValueError if the frequencies are invalid.
+    if low_cut <= 0 or high_cut <= low_cut:
+        raise ValueError(f"Invalid frequencies: low_cut={low_cut}, high_cut={high_cut}")
+    if high_cut >= nyquist:
+        high_cut = nyquist * 0.99
 
     # TODO: normalize the cutoff frequencies
-    low = None
-    high = None
+    low = low_cut / nyquist
+    high = high_cut / nyquist
 
     print("\nFilter Design Parameters:")
     print("-" * 50)
@@ -106,13 +110,14 @@ def bandpass_filter_emg(
     print(f"High cutoff: {high_cut} Hz ({high:.4f} normalized)")
 
     # TODO: design a 4th order Butterworth bandpass filter
-    b = None
-    a = None
+    b, a = signal.butter(4, [low, high], btype='band')
 
     # TODO: pre-allocate filtered array
-    filtered_channels = None
+    filtered_channels = np.zeros_like(channel_data)
 
     # TODO: apply filtfilt to every channel
+    for i in range(channel_data.shape[0]):
+        filtered_channels[i, :] = signal.filtfilt(b, a, channel_data[i, :])
 
     print("\nFiltered Signal Information:")
     print("-" * 50)
@@ -129,16 +134,21 @@ def compute_rms(filtered_channels: np.ndarray, sampling_rate: float, window_ms: 
     """
 
     # TODO: convert window size from ms to samples
-    window_size = None
+    window_size = int(window_ms / 1000 * sampling_rate)
 
     # TODO: pre-allocate RMS array
-    rms_signals = None
+    rms_signals = np.zeros_like(filtered_channels)
 
     # TODO: compute RMS for each channel
     # Hint:
     # 1. square the signal
     # 2. moving average with np.convolve(..., mode="same")
     # 3. square root
+    for i in range(filtered_channels.shape[0]):
+        squared = filtered_channels[i, :] ** 2
+        window = np.ones(window_size) / window_size
+        moving_avg = np.convolve(squared, window, mode='same')
+        rms_signals[i, :] = np.sqrt(moving_avg)
 
     print("\nRMS Signal Information:")
     print("-" * 50)
